@@ -1,0 +1,47 @@
+#!/bin/bash
+
+logfile="/tmp/tarsnap.log"
+mailto="fho"
+
+excludes="--exclude /dev/ --exclude /sys/ --exclude /proc/ \
+	  --exclude /tmp/ --exclude /var/tmp/ --exclude /mnt/attachments \
+	  --exclude /mnt/usbstick --exclude /mnt/whiteshark --exclude /media/ \
+	  --exclude /usr/portage --exclude /home/fho/Downloads \
+	  --exclude /usr/src --exclude /home/fho/chroots \
+	  --exclude /data/leeched --exclude /data/Moviez \
+	  --exclude /data/games --exclude /data/Audio/ --exclude /var/cache \
+	  --exclude /home/fho/git"
+opts="--humanize-numbers --print-stats"
+
+hostname="$(hostname)"
+
+backup()
+{
+	local archive_name="$hostname-$1"
+	local dirs=${*:2}
+
+	echo "----------"
+	echo "Starting $archive_name ($dirs) backup"
+	sleep 1
+	tarsnap -c -f $archive_name-$(date +%Y%m%d) $opts \
+		$excludes $dirs 2>&1 | tee -a "$logfile"
+	return $?
+}
+
+
+wall "Tarsnap backup started"
+rm "$logfile"
+failed=0
+subject="$hostname Backup"
+backup home /home /root || failed=1
+backup etc /etc || failed=1
+backup data /data || failed=1
+backup crypt /mnt/crypt ||failed=1
+if [ $failed -eq 1 ]; then
+	subject="$subject Failed"
+else
+	subject="$subject Successful"
+fi
+
+wall "Tarsnap backup finished"
+cat "$logfile" | mail -s "$subject" $mailto

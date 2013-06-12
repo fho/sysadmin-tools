@@ -1,0 +1,41 @@
+#!/bin/bash
+
+hostname="${1:-$(hostname)}"
+logfile="/tmp/tarsnap.log"
+mailto="fho"
+
+opts="-v --humanize-numbers"
+maxage_sec=$(( 60 * 60 * 24 * 7))
+
+log()
+{
+	echo "$@" | tee -a "$logfile"
+}
+
+[ -z "$hostname" ] && {
+	echo "usage: $0 HOSTNAME"
+	exit 1
+}
+
+rm -f $logfile
+curts=$(date +%s)
+archives=$(tarsnap --list-archives |grep "$hostname-")
+for archive in $archives; do
+	ts=$(echo $archive|grep -o "\-[0-9]*"|grep -o "[0-9]*")
+	if [ -z "$ts" ];then
+		log "No timestamp found in archive name $archive"
+		continue
+	fi
+	ts=$(date -d $ts +%s)
+	if [ $(($curts - $ts)) -ge $maxage_sec ]; then
+		log "Deleting archive $archive"
+		tarsnap $cachedir $opts -d\
+			-f "$archive" 2>&1 | tee -a "$logfile"
+	fi
+done
+
+if [ -f "$logfile" ]; then
+	tarsnap --print-stats 2>&1 | tee -a "$logfile"
+	subject="$hostname Backups deleted"
+	cat "$logfile" | mail -s "$subject" $mailto
+fi
