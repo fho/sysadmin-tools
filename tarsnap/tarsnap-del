@@ -22,6 +22,12 @@ curts=$(date +%s)
 archives=$(tarsnap --list-archives |grep "$hostname-")
 for archive in $archives; do
 	ts=$(echo $archive|grep -o "\-[0-9]*"|grep -o "[0-9]*")
+	archive_name=$(echo $archive|grep  "[[:alpha:]-]*")
+	if [ $(echo $archive|grep $archive_name|wc -l) -le 1 ]; then
+		# don't delete archive if it is the only one for the
+		# destination
+		continue
+	fi
 	if [ -z "$ts" ];then
 		log "No timestamp found in archive name $archive"
 		continue
@@ -33,9 +39,11 @@ for archive in $archives; do
 			-f "$archive" 2>&1 | tee -a "$logfile"
 	fi
 done
-
 if [ -f "$logfile" ]; then
-	tarsnap --print-stats 2>&1 | tee -a "$logfile"
 	subject="$hostname Backups deleted"
-	cat "$logfile" | mail -s "$subject" $mailto
+else
+	subject="$hostname Backup statistics (no backups deleted)"
 fi
+
+tarsnap --print-stats 2>&1 | tee -a "$logfile"
+cat "$logfile" | mail -s "$subject" $mailto
