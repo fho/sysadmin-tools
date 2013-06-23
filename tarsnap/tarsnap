@@ -9,8 +9,10 @@ excludes="--exclude /dev/ --exclude /sys/ --exclude /proc/ \
 	  --exclude /usr/portage --exclude /home/fho/Downloads \
 	  --exclude /usr/src --exclude /home/fho/chroots \
 	  --exclude /data/leeched --exclude /data/Moviez \
-	  --exclude /data/games --exclude /data/Audio/ --exclude /var/cache \
-	  --exclude /home/fho/git"
+	  --exclude /data/games --exclude /data/Audio/ \
+	  --exclude /data/Audio_bought/ --exclude /var/cache \
+	  --exclude /home/fho/git \
+	  --exclude *.mozilla/firefox/*/Cache"
 opts="--humanize-numbers --print-stats"
 
 hostname="$(hostname)"
