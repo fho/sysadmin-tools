@@ -1,7 +1,6 @@
 #!/bin/bash
 
 hostname="${1:-$(hostname)}"
-logfile="/tmp/tarsnap.log"
 mailto="fho"
 
 opts="-v --humanize-numbers"
@@ -9,7 +8,7 @@ maxage_sec=$(( 60 * 60 * 24 * 7))
 
 log()
 {
-	echo "$@" | tee -a "$logfile"
+	echo "$@"
 }
 
 [ -z "$hostname" ] && {
@@ -17,9 +16,9 @@ log()
 	exit 1
 }
 
-rm -f $logfile
 curts=$(date +%s)
 archives=$(tarsnap --list-archives |grep "$hostname-")
+backup_deleted=0
 for archive in $archives; do
 	ts=$(echo $archive|grep -o "\-[0-9]*"|grep -o "[0-9]*")
 	archive_name=$(echo $archive|grep  "[[:alpha:]-]*")
@@ -36,14 +35,14 @@ for archive in $archives; do
 	if [ $(($curts - $ts)) -ge $maxage_sec ]; then
 		log "Deleting archive $archive"
 		tarsnap $cachedir $opts -d\
-			-f "$archive" 2>&1 | tee -a "$logfile"
+			-f "$archive" 2>&1
+		backup_deleted=1
 	fi
 done
-if [ -f "$logfile" ]; then
+if [ $backup_deleted -eq 1 ]; then
 	subject="$hostname Backups deleted"
 else
 	subject="$hostname Backup statistics (no backups deleted)"
 fi
 
-tarsnap --print-stats 2>&1 | tee -a "$logfile"
-cat "$logfile" | mail -s "$subject" $mailto
+tarsnap --print-stats
