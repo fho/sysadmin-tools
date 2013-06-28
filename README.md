@@ -1,4 +1,4 @@
 sysadmin-tools
 ==============
 
-Tools for system administration
+Linux sysop tools, helper scripts, etc
